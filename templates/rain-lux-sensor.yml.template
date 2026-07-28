@@ -1,0 +1,16 @@
+name: rain-lux-sensor
+components:
+  - id: main
+    capabilities:
+      - id: waterSensor
+        version: 1
+      - id: illuminanceMeasurement
+        version: 1
+      - id: battery
+        version: 1
+      - id: refresh
+        version: 1
+      - id: __CAPABILITY_ID__
+        version: 1
+    categories:
+      - name: LeakSensor
