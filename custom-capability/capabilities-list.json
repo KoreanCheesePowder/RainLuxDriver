@@ -1,6 +1,34 @@
 [
     {
+        "id": "buildbook37604.cpTemperatureHumidityHistory",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
         "id": "buildbook37604.driverInformation",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
+        "id": "buildbook37604.motionDriverInformation",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
+        "id": "buildbook37604.motionHoldTime",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
+        "id": "buildbook37604.wheelAction",
         "version": 1,
         "status": "proposed",
         "ephemeral": false,

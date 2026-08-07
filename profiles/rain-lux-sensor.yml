@@ -14,3 +14,6 @@ components:
         version: 1
     categories:
       - name: LeakSensor
+metadata:
+  vid: 0422b78d-13c4-351c-b301-7cb6b32bae06
+  mnmn: SmartThingsCommunity

@@ -1,8 +1,13 @@
-Tuya Rain and Lux Sensor v3.2
+Tuya Rain and Lux Sensor v3.5
 
-Fixes:
-- Reuses the existing buildbook37604.driverInformation capability.
-- Omits the explicit presentation version argument because some SmartThings CLI builds crash when "1" is supplied as a positional argument.
-- Uses ASCII installer status messages to avoid Korean console mojibake.
+Changes in v3.5:
+- Adds an explicit SmartThings device presentation for the dashboard.
+- Dashboard summary shows Water + Lux in the same group.
+- Battery is excluded from the dashboard summary.
+- Battery capability is still kept in the detail view and backend.
+- Reuses the existing Driver Information custom capability when available.
 
-Run SETUP-AND-INSTALL.cmd.
+Install:
+1. Run SETUP-AND-INSTALL.cmd.
+2. Force-close and reopen the SmartThings app.
+3. If an already-paired device still shows the previous dashboard UI, remove the device and pair it again after installing this build.

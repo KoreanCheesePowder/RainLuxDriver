@@ -14,3 +14,6 @@ components:
         version: 1
     categories:
       - name: LeakSensor
+metadata:
+  vid: __PRESENTATION_ID__
+  mnmn: __MANUFACTURER_NAME__
