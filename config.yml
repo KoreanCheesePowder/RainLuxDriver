@@ -1,4 +1,4 @@
-name: Tuya Rain and Lux Sensor
+name: C.P Tuya Rain and Lux Sensor
 packageKey: tuya-rain-lux-sensor
 permissions:
   zigbee: {}
