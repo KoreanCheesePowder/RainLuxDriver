@@ -14,7 +14,7 @@ local driver_info = capabilities["buildbook37604.driverInformation"]
 local function emit_driver_info(device)
   if driver_info ~= nil then
     device:emit_event(driver_info.author("C.P"))
-    device:emit_event(driver_info.driverVersion("v3.5.2"))
+    device:emit_event(driver_info.driverVersion("v3.5.3"))
   end
 end
 
@@ -38,15 +38,34 @@ local function dp_value(body, data_type, start_index, length)
   return nil
 end
 
+-- Some ZG-223Z units briefly assert DP1/IAS Alarm1 even when the rain plate is dry.
+-- The captured false alarm lasted about 7 seconds.  Do not publish wet immediately:
+-- require DP1 to remain at 1 for 10 seconds.  A DP1=0 invalidates the pending check.
+local WET_CONFIRM_SECONDS = 10
+
 local function emit_rain(device, raw)
-  -- ZG-223Z rainwater enum: 0 = none/dry, 1 = raining/wet.
-  -- Ignore every other value instead of guessing; false wet is worse than a missed update.
   if raw == 0 then
-    log.info("ZG-223Z rain DP: dry (0)")
+    local generation = (device:get_field("rain_generation") or 0) + 1
+    device:set_field("rain_generation", generation)
+    device:set_field("rain_raw", 0)
+    log.info("ZG-223Z rain DP: dry (0); pending wet cancelled")
     device:emit_event(capabilities.waterSensor.water.dry())
   elseif raw == 1 then
-    log.info("ZG-223Z rain DP: wet (1)")
-    device:emit_event(capabilities.waterSensor.water.wet())
+    device:set_field("rain_raw", 1)
+    local generation = (device:get_field("rain_generation") or 0) + 1
+    device:set_field("rain_generation", generation)
+    log.warn(string.format("ZG-223Z rain candidate: DP1=1; confirming for %ds before emitting wet", WET_CONFIRM_SECONDS))
+
+    device.thread:call_with_delay(WET_CONFIRM_SECONDS, function()
+      local same_generation = device:get_field("rain_generation") == generation
+      local still_wet = device:get_field("rain_raw") == 1
+      if same_generation and still_wet then
+        log.warn("ZG-223Z rain CONFIRMED: DP1 stayed wet for confirmation window")
+        device:emit_event(capabilities.waterSensor.water.wet())
+      else
+        log.info("ZG-223Z false/transient wet suppressed")
+      end
+    end)
   else
     log.warn(string.format("ZG-223Z rain DP ignored unexpected value=%s", tostring(raw)))
   end
@@ -119,8 +138,9 @@ local function tuya_command_handler(driver, device, zb_rx)
 end
 
 local function added_handler(driver, device)
-  -- Safe startup state. A wet event is emitted ONLY after an explicit rain DP=1 report.
-  device:emit_event(capabilities.waterSensor.water.dry())
+  -- Do not invent a sensor state at pairing time; wait for the first explicit DP1 report.
+  device:set_field("rain_raw", nil)
+  device:set_field("rain_generation", 0)
   emit_driver_info(device)
 end
 

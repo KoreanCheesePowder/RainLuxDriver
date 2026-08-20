@@ -1,4 +1,4 @@
-C.P Tuya Rain and Lux Sensor v3.5.2
+C.P Tuya Rain and Lux Sensor v3.5.3
 
 Changes in v3.5:
 - Adds an explicit SmartThings device presentation for the dashboard.
@@ -17,3 +17,11 @@ Changes in v3.5.2:
 - Water state only changes from explicit rain DP values (0=dry, 1=wet).
 - Removes generic IAS/default water handling to prevent false wet notifications.
 - Adds EF00 DP logging for diagnosis.
+
+
+Changes in v3.5.3:
+- Adds a 10-second confirmation window before publishing waterSensor=wet.
+- A DP1=0 during that window cancels the pending wet event.
+- Logs candidate, confirmed, and suppressed transient wet states.
+- Does not force an artificial dry state when the device is first added.
+- Keeps illuminance/DP parsing behavior unchanged.

@@ -35,6 +35,48 @@
         "namespace": "buildbook37604"
     },
     {
+        "id": "buildbook37604.eatonUpsGatewaySyncV2",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
+        "id": "buildbook37604.eatonUpsLoad",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
+        "id": "buildbook37604.eatonUpsMetricsV2",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
+        "id": "buildbook37604.eatonUpsPowerState",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
+        "id": "buildbook37604.eatonUpsPushReceiver",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
+        "id": "buildbook37604.eatonUpsStatus",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
         "id": "buildbook37604.motionDriverInformation",
         "version": 1,
         "status": "proposed",
@@ -57,6 +99,13 @@
     },
     {
         "id": "buildbook37604.registeredPhones",
+        "version": 1,
+        "status": "proposed",
+        "ephemeral": false,
+        "namespace": "buildbook37604"
+    },
+    {
+        "id": "buildbook37604.upsRuntime",
         "version": 1,
         "status": "proposed",
         "ephemeral": false,
