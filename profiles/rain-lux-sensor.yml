@@ -14,6 +14,53 @@ components:
         version: 1
     categories:
       - name: LeakSensor
+deviceConfig:
+  dashboard:
+    states:
+      - component: main
+        capability: waterSensor
+        version: 1
+        group: main
+        composite: true
+      - component: main
+        capability: illuminanceMeasurement
+        version: 1
+        group: main
+        values:
+          - label: " {{illuminance.value}} {{illuminance.unit}}"
+        composite: true
+    actions: []
+    basicPlus: []
+  detailView:
+    - component: main
+      capability: waterSensor
+      version: 1
+    - component: main
+      capability: illuminanceMeasurement
+      version: 1
+    - component: main
+      capability: battery
+      version: 1
+    - component: main
+      capability: refresh
+      version: 1
+    - component: main
+      capability: buildbook37604.driverInformation
+      version: 1
+  automation:
+    conditions:
+      - component: main
+        capability: waterSensor
+        version: 1
+      - component: main
+        capability: illuminanceMeasurement
+        version: 1
+      - component: main
+        capability: battery
+        version: 1
+    actions:
+      - component: main
+        capability: refresh
+        version: 1
 metadata:
-  vid: 0422b78d-13c4-351c-b301-7cb6b32bae06
   mnmn: SmartThingsCommunity

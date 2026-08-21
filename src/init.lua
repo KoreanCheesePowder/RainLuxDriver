@@ -13,8 +13,8 @@ local driver_info = capabilities["buildbook37604.driverInformation"]
 
 local function emit_driver_info(device)
   if driver_info ~= nil then
-    device:emit_event(driver_info.author("C.P"))
-    device:emit_event(driver_info.driverVersion("v3.5.3"))
+    device:emit_event(driver_info.author("치즈가루"))
+    device:emit_event(driver_info.driverVersion("v3.5.4"))
   end
 end
 
