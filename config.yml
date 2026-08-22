@@ -1,4 +1,4 @@
-name: C.P Tuya Rain and Lux Sensor
+name: 치즈가루 Tuya 강우·조도 센서
 packageKey: tuya-rain-lux-sensor
 permissions:
   zigbee: {}
