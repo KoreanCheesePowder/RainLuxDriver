@@ -1,9 +1,11 @@
 local capabilities = require "st.capabilities"
 local ZigbeeDriver = require "st.zigbee"
 local log = require "log"
+local clusters = require "st.zigbee.zcl.clusters"
 
 local CLUSTER_TUYA = 0xEF00
 local driver_info = capabilities["buildbook37604.driverInformation"]
+local IlluminanceMeasurement = clusters.IlluminanceMeasurement
 
 -- HOBEIAN ZG-223Z / _TZE200_u6x1zyv2
 -- Tuya EF00 payload: [transIdHi transIdLo] [dp] [type] [lenHi lenLo] [data...]
@@ -14,7 +16,7 @@ local driver_info = capabilities["buildbook37604.driverInformation"]
 local function emit_driver_info(device)
   if driver_info ~= nil then
     device:emit_event(driver_info.author("치즈가루"))
-    device:emit_event(driver_info.driverVersion("v3.5.4"))
+    device:emit_event(driver_info.driverVersion("v3.5.6"))
   end
 end
 
@@ -38,36 +40,28 @@ local function dp_value(body, data_type, start_index, length)
   return nil
 end
 
--- Some ZG-223Z units briefly assert DP1/IAS Alarm1 even when the rain plate is dry.
--- The captured false alarm lasted about 7 seconds.  Do not publish wet immediately:
--- require DP1 to remain at 1 for 10 seconds.  A DP1=0 invalidates the pending check.
-local WET_CONFIRM_SECONDS = 10
-
+-- Publish the Tuya DP1 water state immediately so SmartThings routines can react.
+-- Duplicate reports are suppressed, but a real dry<->wet transition is never delayed.
 local function emit_rain(device, raw)
-  if raw == 0 then
-    local generation = (device:get_field("rain_generation") or 0) + 1
-    device:set_field("rain_generation", generation)
-    device:set_field("rain_raw", 0)
-    log.info("ZG-223Z rain DP: dry (0); pending wet cancelled")
-    device:emit_event(capabilities.waterSensor.water.dry())
-  elseif raw == 1 then
-    device:set_field("rain_raw", 1)
-    local generation = (device:get_field("rain_generation") or 0) + 1
-    device:set_field("rain_generation", generation)
-    log.warn(string.format("ZG-223Z rain candidate: DP1=1; confirming for %ds before emitting wet", WET_CONFIRM_SECONDS))
-
-    device.thread:call_with_delay(WET_CONFIRM_SECONDS, function()
-      local same_generation = device:get_field("rain_generation") == generation
-      local still_wet = device:get_field("rain_raw") == 1
-      if same_generation and still_wet then
-        log.warn("ZG-223Z rain CONFIRMED: DP1 stayed wet for confirmation window")
-        device:emit_event(capabilities.waterSensor.water.wet())
-      else
-        log.info("ZG-223Z false/transient wet suppressed")
-      end
-    end)
-  else
+  if raw ~= 0 and raw ~= 1 then
     log.warn(string.format("ZG-223Z rain DP ignored unexpected value=%s", tostring(raw)))
+    return
+  end
+
+  local previous = device:get_field("rain_raw")
+  device:set_field("rain_raw", raw)
+
+  if previous == raw then
+    log.debug(string.format("ZG-223Z rain DP duplicate ignored value=%d", raw))
+    return
+  end
+
+  if raw == 1 then
+    log.warn("ZG-223Z rain DP: WET (1); emitting immediately")
+    device:emit_event(capabilities.waterSensor.water.wet())
+  else
+    log.info("ZG-223Z rain DP: DRY (0); emitting immediately")
+    device:emit_event(capabilities.waterSensor.water.dry())
   end
 end
 
@@ -91,7 +85,8 @@ local function handle_dp(device, dp, data_type, raw)
   -- Known ZG-223Z datapoints used by this driver.
   if dp == 1 then
     emit_rain(device, raw)
-  elseif dp == 2 then
+  elseif dp == 2 or dp == 102 then
+    -- ZG-223Z variants report lux on DP102; older variants may use DP2.
     emit_lux(device, raw)
   elseif dp == 4 then
     emit_battery(device, raw)
@@ -137,10 +132,20 @@ local function tuya_command_handler(driver, device, zb_rx)
   end
 end
 
+
+local function illuminance_attribute_handler(driver, device, value, zb_rx)
+  local measured = value and value.value
+  if measured == nil or measured == 0xFFFF then return end
+
+  -- Zigbee IlluminanceMeasurement.MeasuredValue uses 10,000 * log10(lux) + 1.
+  local lux = math.floor((10 ^ ((measured - 1) / 10000)) + 0.5)
+  log.info(string.format("ZG-223Z IlluminanceMeasurement raw=%d lux=%d", measured, lux))
+  emit_lux(device, lux)
+end
+
 local function added_handler(driver, device)
   -- Do not invent a sensor state at pairing time; wait for the first explicit DP1 report.
   device:set_field("rain_raw", nil)
-  device:set_field("rain_generation", 0)
   emit_driver_info(device)
 end
 
@@ -167,6 +172,11 @@ local driver_template = {
       [CLUSTER_TUYA] = {
         [0x01] = tuya_command_handler,
         [0x02] = tuya_command_handler
+      }
+    },
+    attr = {
+      [IlluminanceMeasurement.ID] = {
+        [IlluminanceMeasurement.attributes.MeasuredValue.ID] = illuminance_attribute_handler
       }
     }
   },

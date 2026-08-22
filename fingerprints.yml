@@ -1,6 +1,6 @@
 zigbeeManufacturer:
   - id: Tuya/TS0601/RainLux/u6x1zyv2
-    deviceLabel: C.P Tuya Rain and Lux Sensor
+    deviceLabel: C.P 비 및 조도 센서
     manufacturer: _TZE200_u6x1zyv2
     model: TS0601
     deviceProfileName: rain-lux-sensor
