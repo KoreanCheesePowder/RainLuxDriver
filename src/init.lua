@@ -16,7 +16,7 @@ local IlluminanceMeasurement = clusters.IlluminanceMeasurement
 local function emit_driver_info(device)
   if driver_info ~= nil then
     device:emit_event(driver_info.author("치즈가루"))
-    device:emit_event(driver_info.driverVersion("v3.5.6"))
+    device:emit_event(driver_info.driverVersion("v3.5.9"))
   end
 end
 
@@ -40,8 +40,28 @@ local function dp_value(body, data_type, start_index, length)
   return nil
 end
 
--- Publish the Tuya DP1 water state immediately so SmartThings routines can react.
--- Duplicate reports are suppressed, but a real dry<->wet transition is never delayed.
+-- DP1 can briefly oscillate between dry/wet even when there is no rain.
+-- To avoid false SmartThings water alerts, WET must remain continuously asserted
+-- for 60 seconds. DRY is still published immediately and cancels any pending WET.
+local WET_CONFIRM_SECONDS = 60
+
+local function publish_rain_state(device, raw)
+  local published = device:get_field("rain_published")
+  if published == raw then
+    return
+  end
+
+  device:set_field("rain_published", raw)
+
+  if raw == 1 then
+    log.warn("ZG-223Z rain DP: WET confirmed; emitting")
+    device:emit_event(capabilities.waterSensor.water.wet())
+  else
+    log.info("ZG-223Z rain DP: DRY; emitting immediately")
+    device:emit_event(capabilities.waterSensor.water.dry())
+  end
+end
+
 local function emit_rain(device, raw)
   if raw ~= 0 and raw ~= 1 then
     log.warn(string.format("ZG-223Z rain DP ignored unexpected value=%s", tostring(raw)))
@@ -51,18 +71,39 @@ local function emit_rain(device, raw)
   local previous = device:get_field("rain_raw")
   device:set_field("rain_raw", raw)
 
+  -- Increment the generation on every real transition. A delayed WET callback
+  -- only publishes when its generation is still current and DP1 is still WET.
+  local generation = (device:get_field("rain_generation") or 0)
+
   if previous == raw then
     log.debug(string.format("ZG-223Z rain DP duplicate ignored value=%d", raw))
     return
   end
 
-  if raw == 1 then
-    log.warn("ZG-223Z rain DP: WET (1); emitting immediately")
-    device:emit_event(capabilities.waterSensor.water.wet())
-  else
-    log.info("ZG-223Z rain DP: DRY (0); emitting immediately")
-    device:emit_event(capabilities.waterSensor.water.dry())
+  generation = generation + 1
+  device:set_field("rain_generation", generation)
+
+  if raw == 0 then
+    publish_rain_state(device, 0)
+    return
   end
+
+  local my_generation = generation
+  log.warn(string.format(
+    "ZG-223Z rain DP: WET candidate; waiting %ds confirmation",
+    WET_CONFIRM_SECONDS
+  ))
+
+  device.thread:call_with_delay(WET_CONFIRM_SECONDS, function()
+    local current_raw = device:get_field("rain_raw")
+    local current_generation = device:get_field("rain_generation")
+
+    if current_raw == 1 and current_generation == my_generation then
+      publish_rain_state(device, 1)
+    else
+      log.info("ZG-223Z rain DP: WET candidate cancelled")
+    end
+  end)
 end
 
 local function emit_lux(device, raw)
@@ -146,6 +187,8 @@ end
 local function added_handler(driver, device)
   -- Do not invent a sensor state at pairing time; wait for the first explicit DP1 report.
   device:set_field("rain_raw", nil)
+  device:set_field("rain_published", nil)
+  device:set_field("rain_generation", 0)
   emit_driver_info(device)
 end
 
